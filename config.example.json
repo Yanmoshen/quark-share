@@ -1,0 +1,7 @@
+{
+  "site_title": "夸克资源站",
+  "site_description": "精选优质资源分享",
+  "admin_password": "请修改为你的密码",
+  "items_per_page": 12,
+  "secret_key": "请修改为随机字符串"
+}

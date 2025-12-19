@@ -1,0 +1,11 @@
+{
+  "categories": [
+    { "id": "games", "name": "游戏", "icon": "🎮" },
+    { "id": "software", "name": "软件", "icon": "💻" },
+    { "id": "movies", "name": "影视", "icon": "🎬" },
+    { "id": "music", "name": "音乐", "icon": "🎵" },
+    { "id": "ebooks", "name": "电子书", "icon": "📚" },
+    { "id": "other", "name": "其他", "icon": "📦" }
+  ],
+  "resources": []
+}

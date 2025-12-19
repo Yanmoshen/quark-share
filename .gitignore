@@ -1,0 +1,19 @@
+# 虚拟环境
+venv/
+__pycache__/
+*.pyc
+
+# 配置和数据文件（服务器端独立管理，不同步）
+config.json
+data/resources.json
+
+# IDE
+.vscode/
+.idea/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
