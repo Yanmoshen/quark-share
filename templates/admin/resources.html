@@ -1,0 +1,415 @@
+{% extends "admin/base.html" %}
+
+{% block title %}资源管理 - {{ config.site_title }}{% endblock %}
+
+{% block admin_content %}
+<div x-data="resourceManager()" x-init="init()" class="space-y-6">
+    <!-- 页面标题 -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white">资源管理</h1>
+            <p class="text-gray-400 mt-1">管理所有分享的资源链接</p>
+        </div>
+        <button @click="openAddModal()" class="btn-gradient">
+            ➕ 添加资源
+        </button>
+    </div>
+    
+    <!-- 搜索和筛选 -->
+    <div class="glass-card p-4">
+        <div class="flex flex-col sm:flex-row gap-4">
+            <div class="flex-1">
+                <input type="text" 
+                       x-model="searchQuery" 
+                       @input.debounce.300ms="loadResources()"
+                       placeholder="搜索资源..." 
+                       class="glass-input w-full py-2 px-4">
+            </div>
+            <button @click="loadResources()" class="btn-glass">
+                🔍 搜索
+            </button>
+        </div>
+    </div>
+    
+    <!-- 批量操作 -->
+    <div x-show="selectedIds.length > 0" class="glass-card p-4">
+        <div class="flex items-center justify-between">
+            <span class="text-gray-400">
+                已选择 <span class="text-white font-bold" x-text="selectedIds.length"></span> 项
+            </span>
+            <button @click="batchDelete()" class="btn-glass text-red-400">
+                🗑️ 批量删除
+            </button>
+        </div>
+    </div>
+    
+    <!-- 资源列表 -->
+    <div class="glass-card overflow-hidden">
+        <!-- 加载状态 -->
+        <div x-show="loading" class="p-8 text-center">
+            <div class="loading-spinner"></div>
+            <p class="text-gray-400 mt-4">加载中...</p>
+        </div>
+        
+        <!-- 数据表格 -->
+        <div x-show="!loading" class="overflow-x-auto">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th class="w-12">
+                            <input type="checkbox"
+                                   @change="toggleSelectAll($event)"
+                                   :checked="isAllSelected()"
+                                   class="rounded"
+                                   title="全选"
+                                   aria-label="全选">
+                        </th>
+                        <th>资源信息</th>
+                        <th>分类</th>
+                        <th>大小</th>
+                        <th>点击</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="resource in resources" :key="resource.id">
+                        <tr>
+                            <td>
+                                <input type="checkbox" 
+                                       :value="resource.id"
+                                       :checked="selectedIds.includes(resource.id)"
+                                       @change="toggleSelect(resource.id)"
+                                       class="rounded">
+                            </td>
+                            <td>
+                                <div class="max-w-xs">
+                                    <p class="font-medium text-white truncate" x-text="resource.title"></p>
+                                    <p class="text-sm text-gray-400 truncate" x-text="resource.description"></p>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="inline-flex items-center gap-1">
+                                    <span x-text="resource.category_info?.icon || '📦'"></span>
+                                    <span x-text="resource.category_info?.name || resource.category"></span>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="text-sm" x-text="resource.size || '-'"></span>
+                            </td>
+                            <td>
+                                <span class="bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-sm" 
+                                      x-text="resource.clicks || 0"></span>
+                            </td>
+                            <td>
+                                <div class="flex items-center gap-2">
+                                    <button @click="openEditModal(resource)" 
+                                            class="text-blue-400 hover:text-blue-300"
+                                            title="编辑">
+                                        ✏️
+                                    </button>
+                                    <button @click="deleteResource(resource.id)" 
+                                            class="text-red-400 hover:text-red-300"
+                                            title="删除">
+                                        🗑️
+                                    </button>
+                                    <a :href="resource.link" 
+                                       target="_blank"
+                                       class="text-green-400 hover:text-green-300"
+                                       title="查看链接">
+                                        🔗
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 空状态 -->
+        <div x-show="!loading && resources.length === 0" class="p-8 text-center">
+            <div class="text-4xl mb-2">📭</div>
+            <p class="text-gray-400">暂无资源</p>
+            <button @click="openAddModal()" class="btn-gradient mt-4">
+                添加第一个资源
+            </button>
+        </div>
+        
+        <!-- 分页 -->
+        <div x-show="!loading && pagination.total_pages > 1" class="p-4 border-t border-white/10">
+            <div class="flex items-center justify-between">
+                <span class="text-gray-400 text-sm">
+                    共 <span x-text="pagination.total"></span> 条记录
+                </span>
+                <div class="flex gap-2">
+                    <button @click="goToPage(pagination.page - 1)" 
+                            :disabled="pagination.page <= 1"
+                            class="btn-glass text-sm"
+                            :class="{'opacity-50': pagination.page <= 1}">
+                        上一页
+                    </button>
+                    <span class="text-gray-400 py-2">
+                        <span x-text="pagination.page"></span> / <span x-text="pagination.total_pages"></span>
+                    </span>
+                    <button @click="goToPage(pagination.page + 1)" 
+                            :disabled="pagination.page >= pagination.total_pages"
+                            class="btn-glass text-sm"
+                            :class="{'opacity-50': pagination.page >= pagination.total_pages}">
+                        下一页
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑模态框 -->
+    <div x-show="showModal" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="modal-overlay"
+         @click.self="closeModal()">
+        <div class="modal-content" @click.stop>
+            <h3 class="text-xl font-bold text-white mb-6" x-text="editingResource ? '编辑资源' : '添加资源'"></h3>
+            
+            <form @submit.prevent="saveResource()">
+                <div class="space-y-4">
+                    <!-- 标题 -->
+                    <div class="form-group">
+                        <label class="form-label">标题 *</label>
+                        <input type="text" 
+                               x-model="formData.title" 
+                               class="glass-input form-input"
+                               placeholder="资源标题"
+                               required>
+                    </div>
+                    
+                    <!-- 链接 -->
+                    <div class="form-group">
+                        <label class="form-label">夸克网盘链接 *</label>
+                        <input type="url" 
+                               x-model="formData.link" 
+                               class="glass-input form-input"
+                               placeholder="https://pan.quark.cn/s/..."
+                               required>
+                    </div>
+                    
+                    <!-- 描述 -->
+                    <div class="form-group">
+                        <label class="form-label">描述</label>
+                        <textarea x-model="formData.description" 
+                                  class="glass-input form-input h-24 resize-none"
+                                  placeholder="资源描述信息"></textarea>
+                    </div>
+                    
+                    <!-- 分类 -->
+                    <div class="form-group">
+                        <label for="category-select" class="form-label">分类</label>
+                        <select id="category-select" x-model="formData.category" class="glass-input form-input" title="选择分类">
+                            <template x-for="cat in categories" :key="cat.id">
+                                <option :value="cat.id" x-text="cat.icon + ' ' + cat.name"></option>
+                            </template>
+                        </select>
+                    </div>
+                    
+                    <!-- 大小 -->
+                    <div class="form-group">
+                        <label class="form-label">文件大小</label>
+                        <input type="text" 
+                               x-model="formData.size" 
+                               class="glass-input form-input"
+                               placeholder="如: 10GB">
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" @click="closeModal()" class="btn-glass">
+                        取消
+                    </button>
+                    <button type="submit" class="btn-gradient" :disabled="saving">
+                        <span x-show="!saving" x-text="editingResource ? '保存修改' : '添加资源'"></span>
+                        <span x-show="saving">保存中...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function resourceManager() {
+    return {
+        resources: [],
+        categories: {{ categories | tojson }},
+        pagination: {
+            page: 1,
+            limit: 20,
+            total: 0,
+            total_pages: 0
+        },
+        loading: true,
+        searchQuery: '',
+        selectedIds: [],
+        showModal: false,
+        editingResource: null,
+        saving: false,
+        formData: {
+            title: '',
+            link: '',
+            description: '',
+            category: 'other',
+            size: ''
+        },
+        
+        async init() {
+            await this.loadResources();
+        },
+        
+        async loadResources() {
+            this.loading = true;
+            try {
+                const params = new URLSearchParams({
+                    page: this.pagination.page,
+                    limit: this.pagination.limit
+                });
+                
+                if (this.searchQuery) {
+                    params.set('search', this.searchQuery);
+                }
+                
+                const data = await apiRequest(`/api/admin/resources?${params}`);
+                this.resources = data.resources || [];
+                this.pagination = data.pagination || this.pagination;
+            } catch (error) {
+                console.error('加载资源失败:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        openAddModal() {
+            this.editingResource = null;
+            this.formData = {
+                title: '',
+                link: '',
+                description: '',
+                category: this.categories[0]?.id || 'other',
+                size: ''
+            };
+            this.showModal = true;
+        },
+        
+        openEditModal(resource) {
+            this.editingResource = resource;
+            this.formData = {
+                title: resource.title,
+                link: resource.link,
+                description: resource.description || '',
+                category: resource.category,
+                size: resource.size || ''
+            };
+            this.showModal = true;
+        },
+        
+        closeModal() {
+            this.showModal = false;
+            this.editingResource = null;
+        },
+        
+        async saveResource() {
+            if (!this.formData.title || !this.formData.link) {
+                showToast('请填写必填项', 'error');
+                return;
+            }
+            
+            this.saving = true;
+            try {
+                if (this.editingResource) {
+                    await apiRequest(`/api/admin/resources/${this.editingResource.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(this.formData)
+                    });
+                    showToast('资源更新成功');
+                } else {
+                    await apiRequest('/api/admin/resources', {
+                        method: 'POST',
+                        body: JSON.stringify(this.formData)
+                    });
+                    showToast('资源添加成功');
+                }
+                
+                this.closeModal();
+                await this.loadResources();
+            } catch (error) {
+                console.error('保存资源失败:', error);
+            } finally {
+                this.saving = false;
+            }
+        },
+        
+        async deleteResource(id) {
+            if (!confirm('确定要删除这个资源吗？')) return;
+            
+            try {
+                await apiRequest(`/api/admin/resources/${id}`, {
+                    method: 'DELETE'
+                });
+                showToast('资源已删除');
+                await this.loadResources();
+            } catch (error) {
+                console.error('删除资源失败:', error);
+            }
+        },
+        
+        toggleSelect(id) {
+            const index = this.selectedIds.indexOf(id);
+            if (index > -1) {
+                this.selectedIds.splice(index, 1);
+            } else {
+                this.selectedIds.push(id);
+            }
+        },
+        
+        toggleSelectAll(event) {
+            if (event.target.checked) {
+                this.selectedIds = this.resources.map(r => r.id);
+            } else {
+                this.selectedIds = [];
+            }
+        },
+        
+        isAllSelected() {
+            return this.resources.length > 0 && 
+                   this.selectedIds.length === this.resources.length;
+        },
+        
+        async batchDelete() {
+            if (!confirm(`确定要删除选中的 ${this.selectedIds.length} 个资源吗？`)) return;
+            
+            try {
+                await apiRequest('/api/admin/resources/batch-delete', {
+                    method: 'POST',
+                    body: JSON.stringify({ ids: this.selectedIds })
+                });
+                showToast(`已删除 ${this.selectedIds.length} 个资源`);
+                this.selectedIds = [];
+                await this.loadResources();
+            } catch (error) {
+                console.error('批量删除失败:', error);
+            }
+        },
+        
+        goToPage(page) {
+            if (page < 1 || page > this.pagination.total_pages) return;
+            this.pagination.page = page;
+            this.loadResources();
+        }
+    };
+}
+</script>
+{% endblock %}

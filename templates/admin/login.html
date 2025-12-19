@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}管理员登录 - {{ config.site_title }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4">
+    <div class="glass-card p-8 w-full max-w-md">
+        <!-- Logo -->
+        <div class="text-center mb-8">
+            <span class="text-5xl">🔐</span>
+            <h1 class="text-2xl font-bold text-white mt-4">管理员登录</h1>
+            <p class="text-gray-400 mt-2">{{ config.site_title }}</p>
+        </div>
+        
+        <!-- 错误提示 -->
+        {% if error %}
+        <div class="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg mb-6">
+            {{ error }}
+        </div>
+        {% endif %}
+        
+        <!-- 登录表单 -->
+        <form method="POST" action="{{ url_for('admin_login') }}">
+            <div class="form-group">
+                <label for="password" class="form-label">管理密码</label>
+                <input type="password" 
+                       id="password" 
+                       name="password" 
+                       class="glass-input form-input" 
+                       placeholder="请输入管理密码"
+                       autofocus
+                       required>
+            </div>
+            
+            <button type="submit" class="btn-gradient w-full mt-6">
+                登录
+            </button>
+        </form>
+        
+        <!-- 返回首页 -->
+        <div class="text-center mt-6">
+            <a href="{{ url_for('index') }}" class="text-gray-400 hover:text-white transition-colors">
+                ← 返回首页
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

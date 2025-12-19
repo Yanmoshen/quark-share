@@ -1,0 +1,252 @@
+{% extends "admin/base.html" %}
+
+{% block title %}分类管理 - {{ config.site_title }}{% endblock %}
+
+{% block admin_content %}
+<div x-data="categoryManager()" class="space-y-6">
+    <!-- 页面标题 -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-white">分类管理</h1>
+            <p class="text-gray-400 mt-1">管理资源分类，自定义图标</p>
+        </div>
+        <button @click="openAddModal()" class="btn-gradient">
+            ➕ 添加分类
+        </button>
+    </div>
+    
+    <!-- 分类列表 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <template x-for="category in categories" :key="category.id">
+            <div class="glass-card p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="text-3xl" x-text="category.icon"></span>
+                        <div>
+                            <h3 class="font-medium text-white" x-text="category.name"></h3>
+                            <p class="text-sm text-gray-400" x-text="'ID: ' + category.id"></p>
+                        </div>
+                    </div>
+                    <span class="bg-purple-500/20 text-purple-300 px-2 py-1 rounded text-sm" 
+                          x-text="(category.count || 0) + ' 个资源'"></span>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button @click="openEditModal(category)" class="btn-glass text-sm">
+                        ✏️ 编辑
+                    </button>
+                    <button @click="deleteCategory(category)" class="btn-glass text-sm text-red-400">
+                        🗑️ 删除
+                    </button>
+                </div>
+            </div>
+        </template>
+    </div>
+    
+    <!-- 空状态 -->
+    <div x-show="categories.length === 0" class="glass-card p-8 text-center">
+        <div class="text-4xl mb-2">📭</div>
+        <p class="text-gray-400">暂无分类</p>
+        <button @click="openAddModal()" class="btn-gradient mt-4">
+            添加第一个分类
+        </button>
+    </div>
+    
+    <!-- 常用 Emoji 提示 -->
+    <div class="glass-card p-6">
+        <h3 class="text-lg font-medium text-white mb-4">💡 常用图标参考</h3>
+        <div class="flex flex-wrap gap-3">
+            <template x-for="emoji in commonEmojis">
+                <button @click="selectEmoji(emoji)" 
+                        class="text-2xl hover:scale-125 transition-transform cursor-pointer"
+                        x-text="emoji">
+                </button>
+            </template>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑模态框 -->
+    <div x-show="showModal" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="modal-overlay"
+         @click.self="closeModal()">
+        <div class="modal-content" @click.stop>
+            <h3 class="text-xl font-bold text-white mb-6" x-text="editingCategory ? '编辑分类' : '添加分类'"></h3>
+            
+            <form @submit.prevent="saveCategory()">
+                <div class="space-y-4">
+                    <!-- 图标 -->
+                    <div class="form-group">
+                        <label class="form-label">图标</label>
+                        <div class="flex items-center gap-4">
+                            <span class="text-4xl" x-text="formData.icon || '📁'"></span>
+                            <input type="text" 
+                                   x-model="formData.icon" 
+                                   class="glass-input form-input flex-1"
+                                   placeholder="输入 Emoji 图标"
+                                   maxlength="4">
+                        </div>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            <template x-for="emoji in commonEmojis">
+                                <button type="button"
+                                        @click="formData.icon = emoji" 
+                                        class="text-xl hover:scale-125 transition-transform"
+                                        x-text="emoji">
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- 名称 -->
+                    <div class="form-group">
+                        <label class="form-label">分类名称 *</label>
+                        <input type="text" 
+                               x-model="formData.name" 
+                               class="glass-input form-input"
+                               placeholder="如：游戏、软件、影视"
+                               required>
+                    </div>
+                    
+                    <!-- ID（仅添加时显示） -->
+                    <div class="form-group" x-show="!editingCategory">
+                        <label class="form-label">分类ID（可选，留空自动生成）</label>
+                        <input type="text" 
+                               x-model="formData.id" 
+                               class="glass-input form-input"
+                               placeholder="如：games、software"
+                               pattern="[a-z0-9_-]*">
+                        <p class="text-xs text-gray-400 mt-1">只能包含小写字母、数字、下划线和横线</p>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" @click="closeModal()" class="btn-glass">
+                        取消
+                    </button>
+                    <button type="submit" class="btn-gradient" :disabled="saving">
+                        <span x-show="!saving" x-text="editingCategory ? '保存修改' : '添加分类'"></span>
+                        <span x-show="saving">保存中...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function categoryManager() {
+    return {
+        categories: {{ categories | tojson }},
+        showModal: false,
+        editingCategory: null,
+        saving: false,
+        formData: {
+            id: '',
+            name: '',
+            icon: '📁'
+        },
+        commonEmojis: ['🎮', '💻', '🎬', '🎵', '📚', '📦', '🎯', '🎨', '📱', '🔧', '🎲', '🏠', '🚀', '💾', '📷', '🎭'],
+        
+        openAddModal() {
+            this.editingCategory = null;
+            this.formData = {
+                id: '',
+                name: '',
+                icon: '📁'
+            };
+            this.showModal = true;
+        },
+        
+        openEditModal(category) {
+            this.editingCategory = category;
+            this.formData = {
+                id: category.id,
+                name: category.name,
+                icon: category.icon
+            };
+            this.showModal = true;
+        },
+        
+        closeModal() {
+            this.showModal = false;
+            this.editingCategory = null;
+        },
+        
+        selectEmoji(emoji) {
+            if (this.showModal) {
+                this.formData.icon = emoji;
+            }
+        },
+        
+        async saveCategory() {
+            if (!this.formData.name) {
+                showToast('请输入分类名称', 'error');
+                return;
+            }
+            
+            this.saving = true;
+            try {
+                if (this.editingCategory) {
+                    await apiRequest(`/api/admin/categories/${this.editingCategory.id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            name: this.formData.name,
+                            icon: this.formData.icon
+                        })
+                    });
+                    
+                    // 更新本地数据
+                    const index = this.categories.findIndex(c => c.id === this.editingCategory.id);
+                    if (index > -1) {
+                        this.categories[index].name = this.formData.name;
+                        this.categories[index].icon = this.formData.icon;
+                    }
+                    
+                    showToast('分类更新成功');
+                } else {
+                    const data = await apiRequest('/api/admin/categories', {
+                        method: 'POST',
+                        body: JSON.stringify(this.formData)
+                    });
+                    
+                    this.categories.push(data.category);
+                    showToast('分类添加成功');
+                }
+                
+                this.closeModal();
+            } catch (error) {
+                console.error('保存分类失败:', error);
+            } finally {
+                this.saving = false;
+            }
+        },
+        
+        async deleteCategory(category) {
+            if (category.count > 0) {
+                showToast(`该分类下有 ${category.count} 个资源，请先删除或移动资源`, 'error');
+                return;
+            }
+            
+            if (!confirm(`确定要删除分类"${category.name}"吗？`)) return;
+            
+            try {
+                await apiRequest(`/api/admin/categories/${category.id}`, {
+                    method: 'DELETE'
+                });
+                
+                this.categories = this.categories.filter(c => c.id !== category.id);
+                showToast('分类已删除');
+            } catch (error) {
+                console.error('删除分类失败:', error);
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

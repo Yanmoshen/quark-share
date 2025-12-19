@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex min-h-screen">
+    <!-- 侧边栏 -->
+    <aside class="admin-sidebar w-64 flex-shrink-0 hidden md:block">
+        <div class="p-6">
+            <!-- Logo -->
+            <div class="flex items-center mb-8">
+                <span class="text-2xl mr-2">🔧</span>
+                <span class="text-lg font-bold text-white">管理后台</span>
+            </div>
+            
+            <!-- 导航菜单 -->
+            <nav class="space-y-2">
+                <a href="{{ url_for('admin_dashboard') }}" 
+                   class="nav-item {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                    <span>📊</span>
+                    <span>概览</span>
+                </a>
+                <a href="{{ url_for('admin_resources') }}" 
+                   class="nav-item {% if request.endpoint == 'admin_resources' %}active{% endif %}">
+                    <span>📦</span>
+                    <span>资源管理</span>
+                </a>
+                <a href="{{ url_for('admin_categories') }}" 
+                   class="nav-item {% if request.endpoint == 'admin_categories' %}active{% endif %}">
+                    <span>🏷️</span>
+                    <span>分类管理</span>
+                </a>
+                <a href="{{ url_for('admin_settings') }}" 
+                   class="nav-item {% if request.endpoint == 'admin_settings' %}active{% endif %}">
+                    <span>⚙️</span>
+                    <span>系统设置</span>
+                </a>
+            </nav>
+        </div>
+        
+        <!-- 底部操作 -->
+        <div class="absolute bottom-0 left-0 right-0 p-6 border-t border-white/10">
+            <a href="{{ url_for('index') }}" class="nav-item">
+                <span>🏠</span>
+                <span>返回前台</span>
+            </a>
+            <a href="{{ url_for('admin_logout') }}" class="nav-item text-red-400">
+                <span>🚪</span>
+                <span>退出登录</span>
+            </a>
+        </div>
+    </aside>
+    
+    <!-- 移动端菜单按钮 -->
+    <div class="md:hidden fixed top-4 left-4 z-50">
+        <button onclick="toggleSidebar()" class="btn-glass p-2" title="打开菜单" aria-label="打开菜单">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+        </button>
+    </div>
+    
+    <!-- 移动端侧边栏遮罩 -->
+    <div id="sidebar-overlay" class="hidden fixed inset-0 bg-black/50 z-40 md:hidden" onclick="toggleSidebar()"></div>
+    
+    <!-- 移动端侧边栏 -->
+    <aside id="mobile-sidebar" class="admin-sidebar w-64 fixed top-0 left-0 h-full z-50 md:hidden transform -translate-x-full transition-transform">
+        <div class="p-6">
+            <!-- Logo -->
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">🔧</span>
+                    <span class="text-lg font-bold text-white">管理后台</span>
+                </div>
+                <button onclick="toggleSidebar()" class="text-white" title="关闭菜单" aria-label="关闭菜单">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- 导航菜单 -->
+            <nav class="space-y-2">
+                <a href="{{ url_for('admin_dashboard') }}" 
+                   class="nav-item {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                    <span>📊</span>
+                    <span>概览</span>
+                </a>
+                <a href="{{ url_for('admin_resources') }}" 
+                   class="nav-item {% if request.endpoint == 'admin_resources' %}active{% endif %}">
+                    <span>📦</span>
+                    <span>资源管理</span>
+                </a>
+                <a href="{{ url_for('admin_categories') }}" 
+                   class="nav-item {% if request.endpoint == 'admin_categories' %}active{% endif %}">
+                    <span>🏷️</span>
+                    <span>分类管理</span>
+                </a>
+                <a href="{{ url_for('admin_settings') }}" 
+                   class="nav-item {% if request.endpoint == 'admin_settings' %}active{% endif %}">
+                    <span>⚙️</span>
+                    <span>系统设置</span>
+                </a>
+            </nav>
+            
+            <!-- 底部操作 -->
+            <div class="mt-8 pt-6 border-t border-white/10">
+                <a href="{{ url_for('index') }}" class="nav-item">
+                    <span>🏠</span>
+                    <span>返回前台</span>
+                </a>
+                <a href="{{ url_for('admin_logout') }}" class="nav-item text-red-400">
+                    <span>🚪</span>
+                    <span>退出登录</span>
+                </a>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- 主内容区 -->
+    <main class="flex-1 p-6 md:p-8 overflow-x-hidden">
+        <div class="max-w-6xl mx-auto">
+            {% block admin_content %}{% endblock %}
+        </div>
+    </main>
+</div>
+
+<script>
+function toggleSidebar() {
+    const sidebar = document.getElementById('mobile-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (sidebar.classList.contains('-translate-x-full')) {
+        sidebar.classList.remove('-translate-x-full');
+        overlay.classList.remove('hidden');
+    } else {
+        sidebar.classList.add('-translate-x-full');
+        overlay.classList.add('hidden');
+    }
+}
+</script>
+{% endblock %}

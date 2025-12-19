@@ -1,0 +1,305 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div x-data="resourceApp()" x-init="init()" class="min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="glass-nav sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">🌟</span>
+                    <span class="text-xl font-bold text-white">{{ config.site_title }}</span>
+                </div>
+                
+                <!-- 搜索框 -->
+                <div class="flex-1 max-w-md mx-8 hidden sm:block">
+                    <div class="search-box">
+                        <svg class="search-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        <input type="text" 
+                               x-model="searchQuery" 
+                               @input.debounce.300ms="search()"
+                               placeholder="搜索资源..." 
+                               class="glass-input w-full py-2 pl-10 pr-4">
+                    </div>
+                </div>
+                
+                <!-- 管理入口 -->
+                <a href="/admin" class="btn-glass text-sm hidden sm:block">
+                    管理后台
+                </a>
+            </div>
+            
+            <!-- 移动端搜索框 -->
+            <div class="sm:hidden pb-4">
+                <div class="search-box">
+                    <svg class="search-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <input type="text" 
+                           x-model="searchQuery" 
+                           @input.debounce.300ms="search()"
+                           placeholder="搜索资源..." 
+                           class="glass-input w-full py-2 pl-10 pr-4">
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- 主内容区 -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 分类和排序 -->
+        <div class="glass-card p-4 mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <!-- 分类筛选 -->
+                <div class="flex flex-wrap gap-2">
+                    <button @click="filterCategory('')" 
+                            :class="{'active': currentCategory === ''}"
+                            class="category-tag">
+                        全部
+                    </button>
+                    <template x-for="cat in categories" :key="cat.id">
+                        <button @click="filterCategory(cat.id)" 
+                                :class="{'active': currentCategory === cat.id}"
+                                class="category-tag">
+                            <span x-text="cat.icon"></span>
+                            <span x-text="cat.name"></span>
+                        </button>
+                    </template>
+                </div>
+                
+                <!-- 排序 -->
+                <div class="flex items-center gap-2">
+                    <label for="sort-select" class="text-sm text-gray-400">排序：</label>
+                    <select id="sort-select" x-model="sortBy" @change="loadResources()" class="sort-select" title="选择排序方式">
+                        <option value="newest">最新</option>
+                        <option value="popular">最热门</option>
+                        <option value="oldest">最早</option>
+                        <option value="name">名称</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 加载状态 -->
+        <div x-show="loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <template x-for="i in 8">
+                <div class="glass-card p-6">
+                    <div class="skeleton h-12 w-12 rounded-lg mb-4"></div>
+                    <div class="skeleton h-6 w-3/4 mb-2"></div>
+                    <div class="skeleton h-4 w-full mb-2"></div>
+                    <div class="skeleton h-4 w-2/3 mb-4"></div>
+                    <div class="skeleton h-10 w-full rounded-lg"></div>
+                </div>
+            </template>
+        </div>
+        
+        <!-- 资源列表 -->
+        <div x-show="!loading" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 resource-grid">
+            <template x-for="resource in resources" :key="resource.id">
+                <div class="glass-card p-6 resource-card">
+                    <!-- 分类图标 -->
+                    <div class="card-icon" x-text="resource.category_info?.icon || '📦'"></div>
+                    
+                    <!-- 标题 -->
+                    <h3 class="card-title" x-text="resource.title"></h3>
+                    
+                    <!-- 描述 -->
+                    <p class="card-desc" x-text="resource.description"></p>
+                    
+                    <!-- 元信息 -->
+                    <div class="card-meta">
+                        <span class="card-size" x-show="resource.size" x-text="resource.size"></span>
+                        <span class="card-clicks">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            <span x-text="resource.clicks || 0"></span>
+                        </span>
+                    </div>
+                    
+                    <!-- 保存按钮 -->
+                    <a :href="resource.link" 
+                       target="_blank"
+                       @click="recordClick(resource.id)"
+                       class="btn-gradient w-full text-center block">
+                        立即保存
+                    </a>
+                </div>
+            </template>
+        </div>
+        
+        <!-- 空状态 -->
+        <div x-show="!loading && resources.length === 0" class="text-center py-16">
+            <div class="text-6xl mb-4">🔍</div>
+            <h3 class="text-xl text-white mb-2">没有找到资源</h3>
+            <p class="text-gray-400">尝试修改搜索条件或浏览其他分类</p>
+        </div>
+        
+        <!-- 分页 -->
+        <div x-show="!loading && pagination.total_pages > 1" class="pagination">
+            <button @click="goToPage(pagination.page - 1)" 
+                    :disabled="!pagination.has_prev"
+                    class="pagination-btn">
+                上一页
+            </button>
+            
+            <template x-for="page in getPageNumbers()" :key="page">
+                <button @click="goToPage(page)" 
+                        :class="{'active': page === pagination.page}"
+                        class="pagination-btn"
+                        x-text="page">
+                </button>
+            </template>
+            
+            <button @click="goToPage(pagination.page + 1)" 
+                    :disabled="!pagination.has_next"
+                    class="pagination-btn">
+                下一页
+            </button>
+        </div>
+    </main>
+    
+    <!-- 页脚 -->
+    <footer class="glass-nav mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="text-center text-gray-400 text-sm">
+                <p>© 2024 {{ config.site_title }} - {{ config.site_description }}</p>
+                <p class="mt-2">
+                    共 <span x-text="pagination.total || 0"></span> 个资源
+                </p>
+            </div>
+        </div>
+    </footer>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function resourceApp() {
+    return {
+        resources: [],
+        categories: [],
+        pagination: {
+            page: 1,
+            limit: 12,
+            total: 0,
+            total_pages: 0,
+            has_prev: false,
+            has_next: false
+        },
+        loading: true,
+        searchQuery: '',
+        currentCategory: '',
+        sortBy: 'newest',
+        
+        async init() {
+            await this.loadCategories();
+            await this.loadResources();
+        },
+        
+        async loadCategories() {
+            try {
+                const data = await apiRequest('/api/categories');
+                this.categories = data.categories || [];
+            } catch (error) {
+                console.error('加载分类失败:', error);
+            }
+        },
+        
+        async loadResources() {
+            this.loading = true;
+            try {
+                const params = new URLSearchParams({
+                    page: this.pagination.page,
+                    limit: this.pagination.limit,
+                    sort: this.sortBy
+                });
+                
+                if (this.currentCategory) {
+                    params.set('category', this.currentCategory);
+                }
+                
+                if (this.searchQuery) {
+                    params.set('search', this.searchQuery);
+                }
+                
+                const data = await apiRequest(`/api/resources?${params}`);
+                this.resources = data.resources || [];
+                this.pagination = data.pagination || this.pagination;
+            } catch (error) {
+                console.error('加载资源失败:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+        
+        filterCategory(categoryId) {
+            this.currentCategory = categoryId;
+            this.pagination.page = 1;
+            this.loadResources();
+        },
+        
+        search() {
+            this.pagination.page = 1;
+            this.loadResources();
+        },
+        
+        goToPage(page) {
+            if (page < 1 || page > this.pagination.total_pages) return;
+            this.pagination.page = page;
+            this.loadResources();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+        
+        getPageNumbers() {
+            const total = this.pagination.total_pages;
+            const current = this.pagination.page;
+            const pages = [];
+            
+            if (total <= 7) {
+                for (let i = 1; i <= total; i++) {
+                    pages.push(i);
+                }
+            } else {
+                if (current <= 4) {
+                    for (let i = 1; i <= 5; i++) pages.push(i);
+                    pages.push('...');
+                    pages.push(total);
+                } else if (current >= total - 3) {
+                    pages.push(1);
+                    pages.push('...');
+                    for (let i = total - 4; i <= total; i++) pages.push(i);
+                } else {
+                    pages.push(1);
+                    pages.push('...');
+                    for (let i = current - 1; i <= current + 1; i++) pages.push(i);
+                    pages.push('...');
+                    pages.push(total);
+                }
+            }
+            
+            return pages.filter(p => p !== '...');
+        },
+        
+        async recordClick(resourceId) {
+            try {
+                await apiRequest(`/api/resources/${resourceId}/click`, {
+                    method: 'POST'
+                });
+                // 更新本地点击数
+                const resource = this.resources.find(r => r.id === resourceId);
+                if (resource) {
+                    resource.clicks = (resource.clicks || 0) + 1;
+                }
+            } catch (error) {
+                console.error('记录点击失败:', error);
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

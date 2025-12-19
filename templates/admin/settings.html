@@ -1,0 +1,186 @@
+{% extends "admin/base.html" %}
+
+{% block title %}系统设置 - {{ config.site_title }}{% endblock %}
+
+{% block admin_content %}
+<div x-data="settingsManager()" class="space-y-6">
+    <!-- 页面标题 -->
+    <div>
+        <h1 class="text-2xl font-bold text-white">系统设置</h1>
+        <p class="text-gray-400 mt-1">配置网站基本信息和管理密码</p>
+    </div>
+    
+    <!-- 网站设置 -->
+    <div class="glass-card p-6">
+        <h2 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+            <span>🌐</span>
+            <span>网站设置</span>
+        </h2>
+        
+        <form @submit.prevent="saveSettings()">
+            <div class="space-y-4 max-w-lg">
+                <div class="form-group">
+                    <label class="form-label">网站标题</label>
+                    <input type="text" 
+                           x-model="siteSettings.site_title" 
+                           class="glass-input form-input"
+                           placeholder="网站标题">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">网站描述</label>
+                    <textarea x-model="siteSettings.site_description" 
+                              class="glass-input form-input h-24 resize-none"
+                              placeholder="网站描述"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">每页显示数量</label>
+                    <input type="number" 
+                           x-model.number="siteSettings.items_per_page" 
+                           class="glass-input form-input"
+                           min="4"
+                           max="100"
+                           placeholder="12">
+                </div>
+                
+                <button type="submit" class="btn-gradient" :disabled="savingSettings">
+                    <span x-show="!savingSettings">保存设置</span>
+                    <span x-show="savingSettings">保存中...</span>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 修改密码 -->
+    <div class="glass-card p-6">
+        <h2 class="text-lg font-bold text-white mb-6 flex items-center gap-2">
+            <span>🔐</span>
+            <span>修改密码</span>
+        </h2>
+        
+        <form @submit.prevent="changePassword()">
+            <div class="space-y-4 max-w-lg">
+                <div class="form-group">
+                    <label class="form-label">当前密码</label>
+                    <input type="password" 
+                           x-model="passwordForm.old_password" 
+                           class="glass-input form-input"
+                           placeholder="请输入当前密码"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">新密码</label>
+                    <input type="password" 
+                           x-model="passwordForm.new_password" 
+                           class="glass-input form-input"
+                           placeholder="请输入新密码（至少4位）"
+                           minlength="4"
+                           required>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">确认新密码</label>
+                    <input type="password" 
+                           x-model="passwordForm.confirm_password" 
+                           class="glass-input form-input"
+                           placeholder="请再次输入新密码"
+                           required>
+                </div>
+                
+                <button type="submit" class="btn-gradient" :disabled="changingPassword">
+                    <span x-show="!changingPassword">修改密码</span>
+                    <span x-show="changingPassword">修改中...</span>
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <!-- 关于 -->
+    <div class="glass-card p-6">
+        <h2 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+            <span>ℹ️</span>
+            <span>关于</span>
+        </h2>
+        
+        <div class="text-gray-400 space-y-2">
+            <p>夸克网盘资源分享网站</p>
+            <p>版本: 1.0.0</p>
+            <p>技术栈: Flask + TailwindCSS + Alpine.js</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function settingsManager() {
+    return {
+        siteSettings: {
+            site_title: '{{ config.site_title }}',
+            site_description: '{{ config.site_description }}',
+            items_per_page: {{ config.items_per_page }}
+        },
+        passwordForm: {
+            old_password: '',
+            new_password: '',
+            confirm_password: ''
+        },
+        savingSettings: false,
+        changingPassword: false,
+        
+        async saveSettings() {
+            this.savingSettings = true;
+            try {
+                await apiRequest('/api/admin/settings', {
+                    method: 'PUT',
+                    body: JSON.stringify(this.siteSettings)
+                });
+                showToast('设置已保存');
+            } catch (error) {
+                console.error('保存设置失败:', error);
+            } finally {
+                this.savingSettings = false;
+            }
+        },
+        
+        async changePassword() {
+            if (this.passwordForm.new_password !== this.passwordForm.confirm_password) {
+                showToast('两次输入的密码不一致', 'error');
+                return;
+            }
+            
+            if (this.passwordForm.new_password.length < 4) {
+                showToast('新密码长度至少4位', 'error');
+                return;
+            }
+            
+            this.changingPassword = true;
+            try {
+                await apiRequest('/api/admin/password', {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        old_password: this.passwordForm.old_password,
+                        new_password: this.passwordForm.new_password
+                    })
+                });
+                
+                showToast('密码修改成功');
+                
+                // 清空表单
+                this.passwordForm = {
+                    old_password: '',
+                    new_password: '',
+                    confirm_password: ''
+                };
+            } catch (error) {
+                console.error('修改密码失败:', error);
+            } finally {
+                this.changingPassword = false;
+            }
+        }
+    };
+}
+</script>
+{% endblock %}

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ config.site_title }}{% endblock %}</title>
+    <meta name="description" content="{{ config.site_description }}">
+    
+    <!-- TailwindCSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'dark-primary': '#0a0a0f',
+                        'dark-secondary': '#111827',
+                        'accent-blue': '#3b82f6',
+                        'accent-purple': '#8b5cf6',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gradient-main min-h-screen">
+    <!-- 动态光效背景 -->
+    <div class="bg-glow"></div>
+    
+    <!-- 主内容区域 -->
+    <div class="relative z-10">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <!-- Toast 通知容器 -->
+    <div id="toast-container"></div>
+    
+    <!-- 全局 JavaScript -->
+    <script>
+        // Toast 通知
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'toast-in 0.3s ease reverse';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        // API 请求封装
+        async function apiRequest(url, options = {}) {
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    },
+                    ...options
+                });
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || '请求失败');
+                }
+                return data;
+            } catch (error) {
+                showToast(error.message, 'error');
+                throw error;
+            }
+        }
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
