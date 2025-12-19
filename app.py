@@ -39,6 +39,7 @@ app.secret_key = config.get('secret_key', 'default-secret-key')
 
 # 数据文件路径
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'resources.json')
+LOG_FILE = os.path.join(os.path.dirname(__file__), 'data', 'login_log.json')
 
 def load_data():
     """加载资源数据"""
@@ -52,6 +53,32 @@ def save_data(data):
     os.makedirs(os.path.dirname(DATA_FILE), exist_ok=True)
     with open(DATA_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
+
+def load_login_log():
+    """加载登录日志"""
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+def save_login_log(logs):
+    """保存登录日志"""
+    os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+    # 只保留最近100条记录
+    logs = logs[-100:]
+    with open(LOG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(logs, f, ensure_ascii=False, indent=2)
+
+def log_login_attempt(ip, success, user_agent=''):
+    """记录登录尝试"""
+    logs = load_login_log()
+    logs.append({
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "ip": ip,
+        "success": success,
+        "user_agent": user_agent[:200] if user_agent else ''  # 限制长度
+    })
+    save_login_log(logs)
 
 def login_required(f):
     """管理员登录验证装饰器"""
@@ -197,12 +224,28 @@ def admin_login():
     
     if request.method == 'POST':
         password = request.form.get('password', '')
+        ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+        user_agent = request.headers.get('User-Agent', '')
+        
         if password == config.get('admin_password'):
             session['admin_logged_in'] = True
+            log_login_attempt(ip, True, user_agent)
             return redirect(url_for('admin_dashboard'))
+        
+        log_login_attempt(ip, False, user_agent)
         return render_template('admin/login.html', config=config, error="密码错误")
     
     return render_template('admin/login.html', config=config)
+
+@app.route('/admin/logs')
+@login_required
+def admin_logs():
+    """登录日志页面"""
+    config = load_config()
+    logs = load_login_log()
+    # 倒序显示，最新的在前面
+    logs = list(reversed(logs))
+    return render_template('admin/logs.html', config=config, logs=logs)
 
 @app.route('/admin/logout')
 def admin_logout():

@@ -1,0 +1,89 @@
+{% extends "admin/base.html" %}
+
+{% block title %}登录日志 - {{ config.site_title }}{% endblock %}
+
+{% block admin_content %}
+<div class="space-y-6">
+    <!-- 页面标题 -->
+    <div>
+        <h1 class="text-2xl font-bold text-white">登录日志</h1>
+        <p class="text-gray-400 mt-1">查看管理后台登录记录，监控异常登录行为</p>
+    </div>
+    
+    <!-- 统计信息 -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="glass-card p-4">
+            <div class="text-gray-400 text-sm">总登录尝试</div>
+            <div class="text-2xl font-bold text-white">{{ logs | length }}</div>
+        </div>
+        <div class="glass-card p-4">
+            <div class="text-gray-400 text-sm">成功登录</div>
+            <div class="text-2xl font-bold text-green-400">{{ logs | selectattr('success') | list | length }}</div>
+        </div>
+        <div class="glass-card p-4">
+            <div class="text-gray-400 text-sm">失败尝试</div>
+            <div class="text-2xl font-bold text-red-400">{{ logs | rejectattr('success') | list | length }}</div>
+        </div>
+    </div>
+    
+    <!-- 日志列表 -->
+    <div class="glass-card overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="glass-table">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>IP 地址</th>
+                        <th>状态</th>
+                        <th>设备信息</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if logs %}
+                        {% for log in logs %}
+                        <tr>
+                            <td class="whitespace-nowrap">{{ log.time }}</td>
+                            <td>
+                                <span class="font-mono">{{ log.ip }}</span>
+                            </td>
+                            <td>
+                                {% if log.success %}
+                                <span class="bg-green-500/20 text-green-400 px-2 py-1 rounded text-sm">
+                                    ✅ 成功
+                                </span>
+                                {% else %}
+                                <span class="bg-red-500/20 text-red-400 px-2 py-1 rounded text-sm">
+                                    ❌ 失败
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="max-w-xs truncate text-sm text-gray-400" title="{{ log.user_agent }}">
+                                {{ log.user_agent[:50] }}{% if log.user_agent|length > 50 %}...{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-8 text-gray-400">
+                                <div class="text-4xl mb-2">📭</div>
+                                <p>暂无登录记录</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- 安全提示 -->
+    <div class="glass-card p-4">
+        <h3 class="text-lg font-medium text-white mb-2">🔒 安全提示</h3>
+        <ul class="text-gray-400 text-sm space-y-1">
+            <li>• 如果发现陌生 IP 多次登录失败，可能有人在尝试破解密码</li>
+            <li>• 如果发现陌生 IP 登录成功，请立即修改密码</li>
+            <li>• 建议使用复杂密码，定期更换</li>
+            <li>• 日志最多保留 100 条记录</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
