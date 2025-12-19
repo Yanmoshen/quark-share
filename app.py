@@ -40,6 +40,7 @@ app.secret_key = config.get('secret_key', 'default-secret-key')
 # 数据文件路径
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'resources.json')
 LOG_FILE = os.path.join(os.path.dirname(__file__), 'data', 'login_log.json')
+ANNOUNCEMENT_FILE = os.path.join(os.path.dirname(__file__), 'data', 'announcement.json')
 
 def load_data():
     """加载资源数据"""
@@ -79,6 +80,25 @@ def log_login_attempt(ip, success, user_agent=''):
         "user_agent": user_agent[:200] if user_agent else ''  # 限制长度
     })
     save_login_log(logs)
+
+def load_announcement():
+    """加载公告内容"""
+    if os.path.exists(ANNOUNCEMENT_FILE):
+        with open(ANNOUNCEMENT_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {
+        "enabled": True,
+        "title": "欢迎访问",
+        "content": "这是一个夸克网盘资源分享站，您可以在这里找到各种优质资源。",
+        "updated_at": datetime.now().isoformat()
+    }
+
+def save_announcement(announcement):
+    """保存公告内容"""
+    os.makedirs(os.path.dirname(ANNOUNCEMENT_FILE), exist_ok=True)
+    announcement['updated_at'] = datetime.now().isoformat()
+    with open(ANNOUNCEMENT_FILE, 'w', encoding='utf-8') as f:
+        json.dump(announcement, f, ensure_ascii=False, indent=2)
 
 def login_required(f):
     """管理员登录验证装饰器"""
@@ -178,6 +198,14 @@ def api_get_categories():
         category['count'] = len([r for r in resources if r.get('category') == category['id']])
     
     return jsonify({"categories": categories})
+
+@app.route('/api/announcement')
+def api_get_announcement():
+    """获取公告内容 API"""
+    announcement = load_announcement()
+    if not announcement.get('enabled', True):
+        return jsonify({"enabled": False})
+    return jsonify(announcement)
 
 @app.route('/api/resources/<resource_id>/click', methods=['POST'])
 def api_record_click(resource_id):
@@ -279,6 +307,14 @@ def admin_settings():
     """系统设置页面"""
     config = load_config()
     return render_template('admin/settings.html', config=config)
+
+@app.route('/admin/announcement')
+@login_required
+def admin_announcement():
+    """公告管理页面"""
+    config = load_config()
+    announcement = load_announcement()
+    return render_template('admin/announcement.html', config=config, announcement=announcement)
 
 # ==================== 管理 API ====================
 
@@ -589,6 +625,36 @@ def api_admin_update_settings():
         "site_description": config.get('site_description'),
         "items_per_page": config.get('items_per_page')
     }})
+
+# ==================== 公告管理 API ====================
+
+@app.route('/api/admin/announcement', methods=['GET'])
+@login_required
+def api_admin_get_announcement():
+    """获取公告内容（管理用）"""
+    announcement = load_announcement()
+    return jsonify(announcement)
+
+@app.route('/api/admin/announcement', methods=['PUT'])
+@login_required
+def api_admin_update_announcement():
+    """更新公告内容"""
+    req_data = request.get_json()
+    if not req_data:
+        return jsonify({"error": "无效的请求数据"}), 400
+    
+    announcement = load_announcement()
+    
+    if 'enabled' in req_data:
+        announcement['enabled'] = bool(req_data['enabled'])
+    if 'title' in req_data:
+        announcement['title'] = req_data['title'].strip()
+    if 'content' in req_data:
+        announcement['content'] = req_data['content'].strip()
+    
+    save_announcement(announcement)
+    
+    return jsonify({"success": True, "announcement": announcement})
 
 # ==================== 错误处理 ====================
 

@@ -23,10 +23,15 @@
                     <span>📦</span>
                     <span>资源管理</span>
                 </a>
-                <a href="{{ url_for('admin_categories') }}" 
+                <a href="{{ url_for('admin_categories') }}"
                    class="nav-item {% if request.endpoint == 'admin_categories' %}active{% endif %}">
                     <span>🏷️</span>
                     <span>分类管理</span>
+                </a>
+                <a href="{{ url_for('admin_announcement') }}"
+                   class="nav-item {% if request.endpoint == 'admin_announcement' %}active{% endif %}">
+                    <span>📢</span>
+                    <span>公告管理</span>
                 </a>
                 <a href="{{ url_for('admin_logs') }}"
                    class="nav-item {% if request.endpoint == 'admin_logs' %}active{% endif %}">
@@ -94,10 +99,15 @@
                     <span>📦</span>
                     <span>资源管理</span>
                 </a>
-                <a href="{{ url_for('admin_categories') }}" 
+                <a href="{{ url_for('admin_categories') }}"
                    class="nav-item {% if request.endpoint == 'admin_categories' %}active{% endif %}">
                     <span>🏷️</span>
                     <span>分类管理</span>
+                </a>
+                <a href="{{ url_for('admin_announcement') }}"
+                   class="nav-item {% if request.endpoint == 'admin_announcement' %}active{% endif %}">
+                    <span>📢</span>
+                    <span>公告管理</span>
                 </a>
                 <a href="{{ url_for('admin_logs') }}"
                    class="nav-item {% if request.endpoint == 'admin_logs' %}active{% endif %}">

@@ -46,6 +46,27 @@
     
     <!-- 主内容区 -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- 公告区域 -->
+        <div x-show="announcement && announcement.enabled"
+             x-transition
+             class="glass-card p-4 mb-6 border border-purple-500/30">
+            <div class="flex items-start gap-3">
+                <span class="text-2xl flex-shrink-0">📢</span>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-white font-medium" x-text="announcement.title"></h3>
+                    <div class="text-gray-300 text-sm mt-1 whitespace-pre-line"
+                         x-text="announcement.content"></div>
+                </div>
+                <button @click="announcement.enabled = false"
+                        class="text-gray-400 hover:text-white flex-shrink-0"
+                        title="关闭公告">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
         <!-- 分类和排序 -->
         <div class="glass-card p-4 mb-8">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -179,6 +200,7 @@ function resourceApp() {
     return {
         resources: [],
         categories: [],
+        announcement: null,
         pagination: {
             page: 1,
             limit: 12,
@@ -193,8 +215,20 @@ function resourceApp() {
         sortBy: 'newest',
         
         async init() {
+            await this.loadAnnouncement();
             await this.loadCategories();
             await this.loadResources();
+        },
+        
+        async loadAnnouncement() {
+            try {
+                const data = await apiRequest('/api/announcement');
+                if (data.enabled) {
+                    this.announcement = data;
+                }
+            } catch (error) {
+                console.error('加载公告失败:', error);
+            }
         },
         
         async loadCategories() {
