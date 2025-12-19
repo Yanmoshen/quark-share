@@ -80,8 +80,8 @@ quark-share/
    ```
 
 5. **访问网站**
-   - 前台: http://localhost:5000
-   - 后台: http://localhost:5000/admin
+   - 前台: http://localhost:5001
+   - 后台: http://localhost:5001/admin
    - 默认密码: `admin123`
 
 ### Ubuntu 服务器部署
@@ -114,7 +114,7 @@ quark-share/
 
 5. **使用 Gunicorn 生产运行**
    ```bash
-   gunicorn -w 2 -b 0.0.0.0:5000 app:app
+   gunicorn -w 2 -b 0.0.0.0:5001 app:app
    ```
 
 6. **配置 Systemd 服务（可选，推荐）**
@@ -130,7 +130,7 @@ quark-share/
    Group=www-data
    WorkingDirectory=/var/www/quark-share
    Environment="PATH=/var/www/quark-share/venv/bin"
-   ExecStart=/var/www/quark-share/venv/bin/gunicorn -w 2 -b 127.0.0.1:5000 app:app
+   ExecStart=/var/www/quark-share/venv/bin/gunicorn -w 2 -b 127.0.0.1:5001 app:app
    Restart=always
 
    [Install]
@@ -154,7 +154,7 @@ quark-share/
        server_name your-domain.com;  # 替换为你的域名
 
        location / {
-           proxy_pass http://127.0.0.1:5000;
+           proxy_pass http://127.0.0.1:5001;
            proxy_set_header Host $host;
            proxy_set_header X-Real-IP $remote_addr;
            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
