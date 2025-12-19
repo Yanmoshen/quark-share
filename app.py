@@ -85,11 +85,22 @@ def load_announcement():
     """加载公告内容"""
     if os.path.exists(ANNOUNCEMENT_FILE):
         with open(ANNOUNCEMENT_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+            data = json.load(f)
+            # 确保包含弹窗相关字段
+            if 'popup_enabled' not in data:
+                data['popup_enabled'] = False
+            if 'popup_title' not in data:
+                data['popup_title'] = data.get('title', '公告')
+            if 'popup_content' not in data:
+                data['popup_content'] = data.get('content', '')
+            return data
     return {
         "enabled": True,
+        "popup_enabled": False,
         "title": "欢迎访问",
         "content": "这是一个夸克网盘资源分享站，您可以在这里找到各种优质资源。",
+        "popup_title": "欢迎访问",
+        "popup_content": "这是一个夸克网盘资源分享站，您可以在这里找到各种优质资源。",
         "updated_at": datetime.now().isoformat()
     }
 
@@ -645,12 +656,21 @@ def api_admin_update_announcement():
     
     announcement = load_announcement()
     
+    # 横幅公告设置
     if 'enabled' in req_data:
         announcement['enabled'] = bool(req_data['enabled'])
     if 'title' in req_data:
         announcement['title'] = req_data['title'].strip()
     if 'content' in req_data:
         announcement['content'] = req_data['content'].strip()
+    
+    # 弹窗公告设置
+    if 'popup_enabled' in req_data:
+        announcement['popup_enabled'] = bool(req_data['popup_enabled'])
+    if 'popup_title' in req_data:
+        announcement['popup_title'] = req_data['popup_title'].strip()
+    if 'popup_content' in req_data:
+        announcement['popup_content'] = req_data['popup_content'].strip()
     
     save_announcement(announcement)
     

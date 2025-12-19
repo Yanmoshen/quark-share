@@ -10,75 +10,184 @@
         <p class="text-gray-400 mt-1">编辑网站公告，向访客展示重要信息和使用说明</p>
     </div>
     
-    <!-- 公告编辑表单 -->
-    <div class="glass-card p-6">
-        <form @submit.prevent="saveAnnouncement()">
-            <!-- 启用开关 -->
-            <div class="mb-6">
-                <label class="flex items-center cursor-pointer">
-                    <div class="relative">
-                        <input type="checkbox" x-model="announcement.enabled" class="sr-only">
-                        <div class="w-12 h-6 rounded-full transition-colors"
-                             :class="announcement.enabled ? 'bg-purple-500' : 'bg-gray-600'"></div>
-                        <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform"
-                             :class="announcement.enabled ? 'translate-x-6' : ''"></div>
-                    </div>
-                    <span class="ml-3 text-white font-medium">启用公告</span>
-                </label>
-                <p class="text-gray-400 text-sm mt-1">关闭后，前台将不显示公告区域</p>
-            </div>
-            
-            <!-- 公告标题 -->
-            <div class="mb-6">
-                <label for="announcement-title" class="block text-white font-medium mb-2">公告标题</label>
-                <input type="text" 
-                       id="announcement-title"
-                       x-model="announcement.title" 
-                       class="glass-input w-full"
-                       placeholder="输入公告标题，如：欢迎访问">
-            </div>
-            
-            <!-- 公告内容 -->
-            <div class="mb-6">
-                <label for="announcement-content" class="block text-white font-medium mb-2">公告内容</label>
-                <textarea id="announcement-content"
-                          x-model="announcement.content" 
-                          rows="10"
-                          class="glass-input w-full"
-                          placeholder="输入公告内容，支持多行文本..."></textarea>
-                <p class="text-gray-400 text-sm mt-1">支持多行文本，换行会自动保留</p>
-            </div>
-            
-            <!-- 保存按钮 -->
-            <div class="flex items-center justify-between">
-                <div class="text-gray-400 text-sm" x-show="announcement.updated_at">
-                    最后更新：<span x-text="formatDate(announcement.updated_at)"></span>
-                </div>
-                <button type="submit" 
-                        class="btn-gradient px-6 py-2"
-                        :disabled="saving">
-                    <span x-show="!saving">💾 保存公告</span>
-                    <span x-show="saving">保存中...</span>
-                </button>
-            </div>
-        </form>
+    <!-- 标签页切换 -->
+    <div class="flex gap-2 border-b border-white/10">
+        <button @click="activeTab = 'banner'" 
+                :class="activeTab === 'banner' ? 'border-purple-500 text-white' : 'border-transparent text-gray-400 hover:text-white'"
+                class="px-4 py-2 border-b-2 transition-colors">
+            📋 横幅公告
+        </button>
+        <button @click="activeTab = 'popup'" 
+                :class="activeTab === 'popup' ? 'border-purple-500 text-white' : 'border-transparent text-gray-400 hover:text-white'"
+                class="px-4 py-2 border-b-2 transition-colors">
+            🔔 弹窗公告
+        </button>
     </div>
     
-    <!-- 预览区域 -->
-    <div class="glass-card p-6">
-        <h3 class="text-lg font-medium text-white mb-4">📱 前台预览效果</h3>
-        <div class="glass-card p-4 border border-purple-500/30" x-show="announcement.enabled">
-            <div class="flex items-start gap-3">
-                <span class="text-2xl">📢</span>
-                <div class="flex-1">
-                    <h4 class="text-white font-medium" x-text="announcement.title || '公告标题'"></h4>
-                    <div class="text-gray-300 text-sm mt-1 whitespace-pre-line" 
-                         x-text="announcement.content || '公告内容...'"></div>
+    <!-- 横幅公告设置 -->
+    <div x-show="activeTab === 'banner'" x-transition class="space-y-6">
+        <div class="glass-card p-6">
+            <form @submit.prevent="saveAnnouncement()">
+                <!-- 启用开关 -->
+                <div class="mb-6">
+                    <label class="flex items-center cursor-pointer">
+                        <div class="relative">
+                            <input type="checkbox" x-model="announcement.enabled" class="sr-only">
+                            <div class="w-12 h-6 rounded-full transition-colors"
+                                 :class="announcement.enabled ? 'bg-purple-500' : 'bg-gray-600'"></div>
+                            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform"
+                                 :class="announcement.enabled ? 'translate-x-6' : ''"></div>
+                        </div>
+                        <span class="ml-3 text-white font-medium">启用横幅公告</span>
+                    </label>
+                    <p class="text-gray-400 text-sm mt-1">关闭后，前台将不显示横幅公告区域</p>
+                </div>
+                
+                <!-- 公告标题 -->
+                <div class="mb-6">
+                    <label for="announcement-title" class="block text-white font-medium mb-2">公告标题</label>
+                    <input type="text" 
+                           id="announcement-title"
+                           x-model="announcement.title" 
+                           class="glass-input w-full"
+                           placeholder="输入公告标题，如：欢迎访问">
+                </div>
+                
+                <!-- 公告内容 -->
+                <div class="mb-6">
+                    <label for="announcement-content" class="block text-white font-medium mb-2">公告内容</label>
+                    <textarea id="announcement-content"
+                              x-model="announcement.content" 
+                              rows="6"
+                              class="glass-input w-full"
+                              placeholder="输入公告内容，支持多行文本..."></textarea>
+                    <p class="text-gray-400 text-sm mt-1">支持多行文本，换行会自动保留</p>
+                </div>
+                
+                <!-- 保存按钮 -->
+                <div class="flex items-center justify-between">
+                    <div class="text-gray-400 text-sm" x-show="announcement.updated_at">
+                        最后更新：<span x-text="formatDate(announcement.updated_at)"></span>
+                    </div>
+                    <button type="submit" 
+                            class="btn-gradient px-6 py-2"
+                            :disabled="saving">
+                        <span x-show="!saving">💾 保存</span>
+                        <span x-show="saving">保存中...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 预览区域 -->
+        <div class="glass-card p-6">
+            <h3 class="text-lg font-medium text-white mb-4">📱 横幅预览效果</h3>
+            <div class="glass-card p-4 border border-purple-500/30" x-show="announcement.enabled">
+                <div class="flex items-start gap-3">
+                    <span class="text-2xl">📢</span>
+                    <div class="flex-1">
+                        <h4 class="text-white font-medium" x-text="announcement.title || '公告标题'"></h4>
+                        <div class="text-gray-300 text-sm mt-1 whitespace-pre-line" 
+                             x-text="announcement.content || '公告内容...'"></div>
+                    </div>
                 </div>
             </div>
+            <div class="text-center text-gray-400 py-8" x-show="!announcement.enabled">
+                <p>横幅公告已关闭，前台不会显示</p>
+            </div>
         </div>
-        <div class="text-center text-gray-400 py-8" x-show="!announcement.enabled">
-            <p>公告已关闭，前台不会显示公告区域</p>
+    </div>
+    
+    <!-- 弹窗公告设置 -->
+    <div x-show="activeTab === 'popup'" x-transition class="space-y-6">
+        <div class="glass-card p-6">
+            <form @submit.prevent="saveAnnouncement()">
+                <!-- 启用开关 -->
+                <div class="mb-6">
+                    <label class="flex items-center cursor-pointer">
+                        <div class="relative">
+                            <input type="checkbox" x-model="announcement.popup_enabled" class="sr-only">
+                            <div class="w-12 h-6 rounded-full transition-colors"
+                                 :class="announcement.popup_enabled ? 'bg-purple-500' : 'bg-gray-600'"></div>
+                            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform"
+                                 :class="announcement.popup_enabled ? 'translate-x-6' : ''"></div>
+                        </div>
+                        <span class="ml-3 text-white font-medium">启用弹窗公告</span>
+                    </label>
+                    <p class="text-gray-400 text-sm mt-1">开启后，用户首次访问时会显示弹窗公告</p>
+                </div>
+                
+                <!-- 弹窗标题 -->
+                <div class="mb-6">
+                    <label for="popup-title" class="block text-white font-medium mb-2">弹窗标题</label>
+                    <input type="text" 
+                           id="popup-title"
+                           x-model="announcement.popup_title" 
+                           class="glass-input w-full"
+                           placeholder="输入弹窗标题，如：欢迎访问">
+                </div>
+                
+                <!-- 弹窗内容 -->
+                <div class="mb-6">
+                    <label for="popup-content" class="block text-white font-medium mb-2">弹窗内容</label>
+                    <textarea id="popup-content"
+                              x-model="announcement.popup_content" 
+                              rows="10"
+                              class="glass-input w-full"
+                              placeholder="输入弹窗内容，支持多行文本..."></textarea>
+                    <p class="text-gray-400 text-sm mt-1">可以放置详细的使用说明、注意事项等内容</p>
+                </div>
+                
+                <!-- 保存按钮 -->
+                <div class="flex items-center justify-between">
+                    <div class="text-gray-400 text-sm" x-show="announcement.updated_at">
+                        最后更新：<span x-text="formatDate(announcement.updated_at)"></span>
+                    </div>
+                    <button type="submit" 
+                            class="btn-gradient px-6 py-2"
+                            :disabled="saving">
+                        <span x-show="!saving">💾 保存</span>
+                        <span x-show="saving">保存中...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 弹窗预览 -->
+        <div class="glass-card p-6">
+            <h3 class="text-lg font-medium text-white mb-4">📱 弹窗预览效果</h3>
+            <div x-show="announcement.popup_enabled">
+                <div class="glass-card border border-purple-500/30 max-w-md mx-auto">
+                    <!-- 弹窗头部 -->
+                    <div class="flex items-center justify-between p-4 border-b border-white/10">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xl">📢</span>
+                            <h4 class="font-bold text-white" x-text="announcement.popup_title || '公告'"></h4>
+                        </div>
+                        <button class="text-gray-400">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- 弹窗内容 -->
+                    <div class="p-4 max-h-48 overflow-y-auto">
+                        <div class="text-gray-300 text-sm whitespace-pre-line" 
+                             x-text="announcement.popup_content || '弹窗内容...'"></div>
+                    </div>
+                    <!-- 弹窗底部 -->
+                    <div class="p-4 border-t border-white/10 flex items-center justify-between">
+                        <label class="flex items-center gap-2 text-gray-400 text-sm">
+                            <input type="checkbox" disabled class="rounded border-gray-600 bg-transparent">
+                            <span>今日不再显示</span>
+                        </label>
+                        <button class="btn-gradient px-3 py-1 text-sm">我知道了</button>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center text-gray-400 py-8" x-show="!announcement.popup_enabled">
+                <p>弹窗公告已关闭，前台不会显示</p>
+            </div>
         </div>
     </div>
     
@@ -86,10 +195,10 @@
     <div class="glass-card p-4">
         <h3 class="text-lg font-medium text-white mb-2">💡 使用提示</h3>
         <ul class="text-gray-400 text-sm space-y-1">
-            <li>• 公告会显示在前台首页的顶部位置</li>
-            <li>• 可以用来发布网站介绍、使用说明、更新日志等信息</li>
-            <li>• 内容支持多行，换行会自动保留显示</li>
-            <li>• 关闭公告后，前台将完全隐藏公告区域</li>
+            <li>• <strong>横幅公告</strong>：显示在首页顶部，适合简短通知</li>
+            <li>• <strong>弹窗公告</strong>：首次访问时弹出，适合详细说明</li>
+            <li>• 用户可以选择"今日不再显示"来关闭弹窗</li>
+            <li>• 两种公告可以同时启用，互不影响</li>
         </ul>
     </div>
 </div>
@@ -100,10 +209,14 @@
 <script>
 function announcementApp() {
     return {
+        activeTab: 'banner',
         announcement: {
             enabled: {{ announcement.enabled | tojson }},
             title: {{ announcement.title | tojson }},
             content: {{ announcement.content | tojson }},
+            popup_enabled: {{ announcement.popup_enabled | tojson }},
+            popup_title: {{ announcement.popup_title | tojson }},
+            popup_content: {{ announcement.popup_content | tojson }},
             updated_at: {{ announcement.updated_at | tojson if announcement.updated_at else 'null' }}
         },
         saving: false,
@@ -120,7 +233,10 @@ function announcementApp() {
                     body: JSON.stringify({
                         enabled: this.announcement.enabled,
                         title: this.announcement.title,
-                        content: this.announcement.content
+                        content: this.announcement.content,
+                        popup_enabled: this.announcement.popup_enabled,
+                        popup_title: this.announcement.popup_title,
+                        popup_content: this.announcement.popup_content
                     })
                 });
                 
